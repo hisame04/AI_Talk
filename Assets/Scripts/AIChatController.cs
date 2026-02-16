@@ -10,10 +10,11 @@ public class AIChatController : MonoBehaviour
     private string apiKey = "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";
     private string apiUrl = "https://api.openai.com/v1/chat/completions";
     private List<Message> messageHistory = new List<Message>();
+    public VoiceTalkController voiceTalkController;
 
     void Start()
     {
-        var systemMessage = new Message { role = "system", content = "あなたは初音ミクです。短く可愛らしく返事をしてください。" };
+        var systemMessage = new Message { role = "system", content = "あなたは初音ミクです。短く可愛らしく返事をしてください。英単語はアルファベットはカタカナに置き換えてから返答してください。" };
         messageHistory.Add(systemMessage);
     }
 
@@ -54,6 +55,8 @@ public class AIChatController : MonoBehaviour
                 string mikuReply = response.choices[0].message.content;
                 
                 Debug.Log("ミク: " + mikuReply);
+                voiceTalkController.Speak(mikuReply);
+
                 // ここでテキストUIに表示したり、次の音声合成に渡したりする
 
                 //返答の記憶
