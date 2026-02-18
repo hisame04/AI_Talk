@@ -4,17 +4,21 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
+using UnityEngine.UI;
+using Christina.UI;
 
 public class AIChatController : MonoBehaviour
 {
     private string apiKey = "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";
     private string apiUrl = "https://api.openai.com/v1/chat/completions";
     private List<Message> messageHistory = new List<Message>();
-    public VoiceTalkController voiceTalkController;
+    private bool smoothVoice;
+    public OpenJTalkClient openJTalkClient;
+    public MikuTtsClient mikuTtsClient;
 
     void Start()
     {
-        var systemMessage = new Message { role = "system", content = "あなたは初音ミクです。短く可愛らしく返事をしてください。英単語はアルファベットはカタカナに置き換えてから返答してください。" };
+        var systemMessage = new Message { role = "system", content = "あなたは初音ミクです。短く可愛らしく返事をしてください。英単語はアルファベットはカタカナに置き換えてから返答してください。絵文字や顔文字の使用は禁止です。" };
         messageHistory.Add(systemMessage);
     }
 
@@ -38,7 +42,7 @@ public class AIChatController : MonoBehaviour
         };
 
         string json = JsonConvert.SerializeObject(messageData);
-        
+
         using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))
         {
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
@@ -53,10 +57,17 @@ public class AIChatController : MonoBehaviour
             {
                 var response = JsonConvert.DeserializeObject<OpenAIResponse>(request.downloadHandler.text);
                 string mikuReply = response.choices[0].message.content;
-                
-                Debug.Log("ミク: " + mikuReply);
-                voiceTalkController.Speak(mikuReply);
 
+                Debug.Log("ミク: " + mikuReply);
+                if (smoothVoice)
+                {
+                    mikuTtsClient.Speak(mikuReply);
+                }
+                else
+                {
+                    openJTalkClient.Speak(mikuReply);
+                }
+                
                 // ここでテキストUIに表示したり、次の音声合成に渡したりする
 
                 //返答の記憶
@@ -66,7 +77,7 @@ public class AIChatController : MonoBehaviour
             else
             {
                 Debug.LogError("通信エラー: " + request.error);
-                
+
                 if (request.downloadHandler != null)
                 {
                     Debug.LogError("詳細な原因: " + request.downloadHandler.text);
@@ -88,6 +99,16 @@ public class AIChatController : MonoBehaviour
     {
         public string role;
         public string content;
+    }
+
+    //使用する読み上げモードをトグルスイッチ経由で更新するメソッド
+    public void SetSmoothVoiceOn()
+    {
+        smoothVoice = true;
+    }
+    public void SetSmoothVoiceOff()
+    {
+        smoothVoice = false;
     }
 
 }

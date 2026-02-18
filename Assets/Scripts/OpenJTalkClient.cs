@@ -6,7 +6,7 @@ using UnityEngine;
  using UnityEngine.Networking;
 using UnityEngine.Rendering;
 
-public class VoiceTalkController : MonoBehaviour
+public class OpenJTalkClient : MonoBehaviour
 {
     const string LibName = "openjtalk"; // openjtalk.bundle 内の実体名
     [DllImport(LibName)] static extern void OpenJTalk_initialize(string voicePath, string dicPath);
