@@ -9,12 +9,21 @@ using Christina.UI;
 
 public class AIChatController : MonoBehaviour
 {
-    private string apiKey = "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";
+    private string apiKey;
     private string apiUrl = "https://api.openai.com/v1/chat/completions";
     private List<Message> messageHistory = new List<Message>();
     private bool smoothVoice;
     public OpenJTalkClient openJTalkClient;
     public MikuTtsClient mikuTtsClient;
+
+    void Awake()
+    {
+        apiKey = LocalEnv.Get("OPENAI_API_KEY");
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            Debug.LogError("OPENAI_API_KEY が見つかりません。.env.local を設定してください。");
+        }
+    }
 
     void Start()
     {
@@ -30,6 +39,12 @@ public class AIChatController : MonoBehaviour
 
     IEnumerator PostRequest(string text)
     {
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            Debug.LogError("OPENAI_API_KEY が未設定のため、APIリクエストを送信できません。");
+            yield break;
+        }
+
         //入力内容の記憶
         var userMsg = new Message { role = "user", content = text };
         messageHistory.Add(userMsg);
@@ -43,7 +58,7 @@ public class AIChatController : MonoBehaviour
 
         string json = JsonConvert.SerializeObject(messageData);
 
-        using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))
+        using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))// APIルートにPOSTを投げる
         {
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -59,6 +74,7 @@ public class AIChatController : MonoBehaviour
                 string mikuReply = response.choices[0].message.content;
 
                 Debug.Log("ミク: " + mikuReply);
+                //音声の再生
                 if (smoothVoice)
                 {
                     mikuTtsClient.Speak(mikuReply);
