@@ -102,5 +102,8 @@ InitTestScene*.unity*
 .env.local
 
 # Local-only licensed assets
-/Assets/3Dmodel/
-/Assets/Motion/
+/Assets/3Dmodel/*
+!Assets/3DModel/.gitkeep
+
+/Assets/Motion/*
+!Assets/Motion/.gitkeep
