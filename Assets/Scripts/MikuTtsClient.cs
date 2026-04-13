@@ -4,7 +4,7 @@ using UnityEngine; // Unityの基本APIを使うための名前空間を読み�
 using UnityEngine.Networking; // UnityWebRequestなどネットワークAPIを使うための名前空間を読み込む
 public class MikuTtsClient : MonoBehaviour
 { 
-    [SerializeField] private string proxyUrl = "http://127.0.0.1:8000/tts"; // インスペクターから設定できるプロキシURLを保持する
+    [SerializeField] private string proxyUrl = "http://127.0.0.1:8000/tts"; // インスペクターから設定できるプロキシURLを保持する // ゲーミングPCはhttp://10.0.0.19:8000/tts
     [SerializeField] private AudioSource audioSource; // 再生に使うAudioSource参照を保持する
     private UnityWebRequest activeRequest;// 現在進行中のリクエストを保持しておく変数
     [System.Serializable]

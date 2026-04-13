@@ -29494,7 +29494,7 @@ AudioSource:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1347118618}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
@@ -29596,8 +29596,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe39918675cda451d9c3e49bd1a8b04a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MikuTtsClient
-  proxyUrl: http://10.0.0.19:8000/tts
-  audioSource: {fileID: 1347118621}
+  proxyUrl: http://127.0.0.1:8000/tts
+  audioSource: {fileID: 890252088}
 --- !u!1 &1352088549
 GameObject:
   m_ObjectHideFlags: 0
