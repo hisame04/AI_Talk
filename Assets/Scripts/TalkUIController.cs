@@ -4,14 +4,19 @@ using TMPro;
 
 public class TalkUIController : MonoBehaviour
 {
-    public TMP_InputField inputField;
-    public Button sendButton;
-    public AIChatController aIChatController;
-    
+    [SerializeField] private TMP_InputField inputField;
+    [SerializeField] private Button sendButton;
+    [ SerializeField] private Button startRecordingButton;
+    [ SerializeField] private Button stopRecordingButton;
+    [SerializeField] private AIChatController aIChatController;
+    [SerializeField] private WhisperSpeechToText whisperSpeechToText;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         sendButton.onClick.AddListener(OnSend);
+        startRecordingButton.onClick.AddListener(whisperSpeechToText.StartRecording);
+        stopRecordingButton.onClick.AddListener(whisperSpeechToText.StopRecording);
     }
 
     // Update is called once per frame
