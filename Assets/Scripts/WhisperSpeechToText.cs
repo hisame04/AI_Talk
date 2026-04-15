@@ -4,14 +4,15 @@ using UnityEngine.Networking;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEngine.UI;
 
 public class WhisperSpeechToText : MonoBehaviour
 {
-
-	[SerializeField]
-	private string openAIApiKey;
-	[SerializeField] private InputField _textInterface;
+	[SerializeField] private AIChatController aiChatController;
+	[SerializeField] private OpenAIClient openAIClient;
+	[SerializeField] private TMP_InputField _textInterface;
+	private string whisper_apiUrl = "https://api.openai.com/v1/audio/transcriptions";
 
 	public int frequency = 16000; // 周波数
 	public int maxRecordingTime; // 録音最大時間
@@ -33,6 +34,7 @@ public class WhisperSpeechToText : MonoBehaviour
 	    }
 	}
 
+	// レコーディングを開始する関数（UIのボタンなどから呼ぶ）
 	public void StartRecording()
 	{
 	    recordingTime = 0;
@@ -52,11 +54,13 @@ public class WhisperSpeechToText : MonoBehaviour
 	    }
 	}
 
+	// レコーディング中かどうかを確認する
 	public bool IsRecording()
 	{
 	    return Microphone.IsRecording(null);
 	}
 
+	// レコーディングを止めて、Whisper APIに送信する
 	public void StopRecording() 
 	{
 	    Debug.Log("RecordingStop.");
@@ -67,56 +71,47 @@ public class WhisperSpeechToText : MonoBehaviour
 	    var audioData = WavUtility.FromAudioClip(clip);
 
 	    // Send HTTP request to Whisper API
-	    StartCoroutine(SendRequest(audioData));
+	    StartCoroutine(PostRequest(audioData));
 	}
 
-	IEnumerator SendRequest(byte[] audioData) 
+	// 録音した音声データをWhisper APIに送信してテキストに変換する
+	IEnumerator PostRequest(byte[] audioData) 
 	{
-	    string url = "https://api.openai.com/v1/audio/transcriptions";
-	    string accessToken = openAIApiKey;
-
 	    // フォームデータを作成する
 	    var formData = new List<IMultipartFormSection>();
 	    formData.Add(new MultipartFormDataSection("model", "whisper-1"));
 	    formData.Add(new MultipartFormDataSection("language", "ja"));
 	    formData.Add(new MultipartFormFileSection("file", audioData, "audio.wav", "multipart/form-data"));
 
-	    // UnityWebRequestを作成する
-	    using (UnityWebRequest request = UnityWebRequest.Post(url, formData))
-	    {
-		// リクエストヘッダーを設定
-		request.SetRequestHeader("Authorization", "Bearer " + accessToken);
+		yield return openAIClient.PostMultipart(
+			whisper_apiUrl,
+			formData,
+			onSuccess: (responseText) =>
+			 {
+				 string recognizedText = "";
+				 try 
+				 {
+					recognizedText = JsonUtility.FromJson<WhisperResponseModel>(responseText).text;
+					aiChatController.SendMessageToMiku(recognizedText);
+				 } 
+				 catch (System.Exception e) 
+				 {
+					 Debug.LogError(e.Message);
+				 }
 
-		// リクエストを送信し、応答を待機
-		yield return request.SendWebRequest();
-
-		// エラー処理
-		if (request.result != UnityWebRequest.Result.Success) 
-		{
-		    Debug.LogError(request.error);
-		    yield break;
-		}
-
-		// JSONデータのレスポンスをパースする
-		string jsonResponse = request.downloadHandler.text;
-		string recognizedText = "";
-		try 
-		{
-		    recognizedText = JsonUtility.FromJson<WhisperResponseModel>(jsonResponse).text;
-		} 
-		catch (System.Exception e) 
-		{
-		    Debug.LogError(e.Message);
-		}
-
-		// 書き起こしされたテキストを出力する
-		Debug.Log("Input Text: " + recognizedText);
-		_textInterface.text = recognizedText;
-
-	    }
+				 // 書き起こしされたテキストを出力する
+				 Debug.Log("Input Text: " + recognizedText);
+				 _textInterface.text = recognizedText;
+			 },
+			onError: (errorMessage) =>
+			 {
+				 Debug.LogError("Error: " + errorMessage);
+			 }
+		);
 	}
 }
 
+// WAV形式のバイナリデータを生成するクラス
 public static class WavUtility 
 {
 	public static byte[] FromAudioClip(AudioClip clip)

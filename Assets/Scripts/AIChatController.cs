@@ -9,21 +9,12 @@ using Christina.UI;
 
 public class AIChatController : MonoBehaviour
 {
-    private string apiKey;
-    private string apiUrl = "https://api.openai.com/v1/chat/completions";
+    [SerializeField] private OpenAIClient openAIClient;
+    private string chat_apiUrl = "https://api.openai.com/v1/chat/completions";
     private List<Message> messageHistory = new List<Message>();
     private bool smoothVoice;
     public OpenJTalkClient openJTalkClient;
     public MikuTtsClient mikuTtsClient;
-
-    void Awake()
-    {
-        apiKey = LocalEnv.Get("OPENAI_API_KEY");
-        if (string.IsNullOrEmpty(apiKey))
-        {
-            Debug.LogError("OPENAI_API_KEY が見つかりません。.env.local を設定してください。");
-        }
-    }
 
     void Start()
     {
@@ -39,12 +30,6 @@ public class AIChatController : MonoBehaviour
 
     IEnumerator PostRequest(string text)
     {
-        if (string.IsNullOrEmpty(apiKey))
-        {
-            Debug.LogError("OPENAI_API_KEY が未設定のため、APIリクエストを送信できません。");
-            yield break;
-        }
-
         //入力内容の記憶
         var userMsg = new Message { role = "user", content = text };
         messageHistory.Add(userMsg);
@@ -58,48 +43,36 @@ public class AIChatController : MonoBehaviour
 
         string json = JsonConvert.SerializeObject(messageData);
 
-        using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))// APIルートにPOSTを投げる
-        {
-            byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
-            request.SetRequestHeader("Authorization", "Bearer " + apiKey);
+        yield return openAIClient.PostJson(
+            chat_apiUrl,
+            json,
+            onSuccess: (responseText) =>
+             {
+                 var response = JsonConvert.DeserializeObject<OpenAIResponse>(responseText);
+                 string mikuReply = response.choices[0].message.content;
 
-            yield return request.SendWebRequest();
+                 Debug.Log("ミク: " + mikuReply);
+                 //音声の再生
+                 if (smoothVoice)
+                 {
+                     mikuTtsClient.Speak(mikuReply);
+                 }
+                 else
+                 {
+                     openJTalkClient.Speak(mikuReply);
+                 }
+                 
+                 // ここでテキストUIに表示したり、次の音声合成に渡したりする
 
-            if (request.result == UnityWebRequest.Result.Success)
-            {
-                var response = JsonConvert.DeserializeObject<OpenAIResponse>(request.downloadHandler.text);
-                string mikuReply = response.choices[0].message.content;
-
-                Debug.Log("ミク: " + mikuReply);
-                //音声の再生
-                if (smoothVoice)
-                {
-                    mikuTtsClient.Speak(mikuReply);
-                }
-                else
-                {
-                    openJTalkClient.Speak(mikuReply);
-                }
-                
-                // ここでテキストUIに表示したり、次の音声合成に渡したりする
-
-                //返答の記憶
-                var assistantMsg = new Message { role = "assistant", content = mikuReply };
-                messageHistory.Add(assistantMsg);
-            }
-            else
-            {
-                Debug.LogError("通信エラー: " + request.error);
-
-                if (request.downloadHandler != null)
-                {
-                    Debug.LogError("詳細な原因: " + request.downloadHandler.text);
-                }
-            }
-        }
+                 //返答の記憶
+                 var assistantMsg = new Message { role = "assistant", content = mikuReply };
+                 messageHistory.Add(assistantMsg);
+             },
+             onError: (errorMessage) =>
+             {
+                 Debug.LogError("通信エラー: " + errorMessage);
+             }
+        );
     }
 
     // レスポンス受け取り用のクラス定義
