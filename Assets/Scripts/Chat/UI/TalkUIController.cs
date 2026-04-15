@@ -8,15 +8,14 @@ public class TalkUIController : MonoBehaviour
     [SerializeField] private Button sendButton;
     [ SerializeField] private Button startRecordingButton;
     [ SerializeField] private Button stopRecordingButton;
-    [SerializeField] private AIChatController aIChatController;
-    [SerializeField] private WhisperSpeechToText whisperSpeechToText;
+    [SerializeField] private ConversationManager conversationManager;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         sendButton.onClick.AddListener(OnSend);
-        startRecordingButton.onClick.AddListener(whisperSpeechToText.StartRecording);
-        stopRecordingButton.onClick.AddListener(whisperSpeechToText.StopRecording);
+        startRecordingButton.onClick.AddListener(conversationManager.OnStartRecording);
+        stopRecordingButton.onClick.AddListener(conversationManager.OnStopRecording);
     }
 
     // Update is called once per frame
@@ -31,7 +30,7 @@ public class TalkUIController : MonoBehaviour
         sendButton.interactable = false;
 
         //APIに入力内容を送信
-        aIChatController.SendMessageToMiku(inputField.text);
+        conversationManager.OnReceiveMikuReply(inputField.text);
 
         inputField.text = "";
         Invoke("ReEnableButton", 2.0f);

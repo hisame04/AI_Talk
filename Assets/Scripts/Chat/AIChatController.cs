@@ -1,11 +1,11 @@
+using System;
 using UnityEngine;
+using UnityEngine.Networking;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
-using UnityEngine.Networking;
+using System.IO;
+using TMPro;
 using Newtonsoft.Json;
-using UnityEngine.UI;
-using Christina.UI;
 
 public class AIChatController : MonoBehaviour
 {
@@ -23,12 +23,12 @@ public class AIChatController : MonoBehaviour
     }
 
     // 会話を始める関数（UIのボタンなどから呼ぶ）
-    public void SendMessageToMiku(string userMessage)
+    public void SendMessageToMiku(string userMessage, Action<string> onSuccess, Action<string> onError = null)
     {
-        StartCoroutine(PostRequest(userMessage));
+        StartCoroutine(PostRequest(userMessage, onSuccess, onError));
     }
 
-    IEnumerator PostRequest(string text)
+    IEnumerator PostRequest(string text, Action<string> onSuccess, Action<string> onError)
     {
         //入力内容の記憶
         var userMsg = new Message { role = "user", content = text };
@@ -52,15 +52,7 @@ public class AIChatController : MonoBehaviour
                  string mikuReply = response.choices[0].message.content;
 
                  Debug.Log("ミク: " + mikuReply);
-                 //音声の再生
-                 if (smoothVoice)
-                 {
-                     mikuTtsClient.Speak(mikuReply);
-                 }
-                 else
-                 {
-                     openJTalkClient.Speak(mikuReply);
-                 }
+                 onSuccess?.Invoke(mikuReply); // ここでテキストUIに表示したり、次の音声合成に渡したりする
                  
                  // ここでテキストUIに表示したり、次の音声合成に渡したりする
 
@@ -70,7 +62,8 @@ public class AIChatController : MonoBehaviour
              },
              onError: (errorMessage) =>
              {
-                 Debug.LogError("通信エラー: " + errorMessage);
+                Debug.LogError("通信エラー: " + errorMessage);
+                onError?.Invoke(errorMessage);
              }
         );
     }
@@ -88,16 +81,6 @@ public class AIChatController : MonoBehaviour
     {
         public string role;
         public string content;
-    }
-
-    //使用する読み上げモードをトグルスイッチ経由で更新するメソッド
-    public void SetSmoothVoiceOn()
-    {
-        smoothVoice = true;
-    }
-    public void SetSmoothVoiceOff()
-    {
-        smoothVoice = false;
     }
 
 }
