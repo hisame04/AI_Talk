@@ -7078,6 +7078,7 @@ MonoBehaviour:
   startRecordingButton: {fileID: 187760389}
   stopRecordingButton: {fileID: 933526396}
   conversationManager: {fileID: 472294019}
+  configPanel: {fileID: 597699053}
 --- !u!4 &288787679
 Transform:
   m_ObjectHideFlags: 0
@@ -10337,6 +10338,7 @@ MonoBehaviour:
   whisperSpeechToText: {fileID: 6616639}
   openJTalkClient: {fileID: 1327669016}
   mikuTtsClient: {fileID: 1347118622}
+  talkUIController: {fileID: 288787678}
   _textInterface: {fileID: 1829623606}
   isSmoothVoice: 0
   isVoiceInput: 0
@@ -14520,6 +14522,83 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.060548265, y: 0.05911507, z: 0.027215999}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &597699053
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 597699054}
+  - component: {fileID: 597699056}
+  - component: {fileID: 597699055}
+  m_Layer: 5
+  m_Name: ConfigPanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &597699054
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 597699053}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8195832682282831939}
+  - {fileID: 1779964839}
+  m_Father: {fileID: 1359024960}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 15, y: 25.04895}
+  m_SizeDelta: {x: -441.8232, y: -269.7952}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &597699055
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 597699053}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+  m_Type: 1
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &597699056
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 597699053}
+  m_CullTransparentMesh: 1
 --- !u!1 &598395834 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -1751205115146525514, guid: 0b56e0363d7b5415ba067a71e69b564e, type: 3}
@@ -30101,11 +30180,11 @@ RectTransform:
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 8195832682282831939}
   - {fileID: 1829623605}
   - {fileID: 2012514953}
   - {fileID: 187760388}
   - {fileID: 933526395}
+  - {fileID: 597699054}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -39809,6 +39888,96 @@ MonoBehaviour:
   boneID: 427
   ikEnabled: 0
   ikWeight: 1
+--- !u!1001 &1779964838
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 597699054}
+    m_Modifications:
+    - target: {fileID: 1504739816223765999, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: onToggleOn.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 472294019}
+    - target: {fileID: 1504739816223765999, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: onToggleOff.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 472294019}
+    - target: {fileID: 1504739816223765999, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: onToggleOn.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: SetVoiceInputOn
+      objectReference: {fileID: 0}
+    - target: {fileID: 1504739816223765999, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: onToggleOff.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: SetVoiceInputOff
+      objectReference: {fileID: 0}
+    - target: {fileID: 3444846389581441185, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_Name
+      value: ToggleItem_voiceInput
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 76.999954
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -30.400002
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4538952046742931962, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6520882959148258117, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_text
+      value: VoiceInput
+      objectReference: {fileID: 0}
+    - target: {fileID: 6520882959148258117, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+      propertyPath: m_margin.x
+      value: -49.288498
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+--- !u!4 &1779964839 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
+  m_PrefabInstance: {fileID: 1779964838}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1780519541 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7428786950980265433, guid: c5f4092ed7c554e149cf5cb9ac0648ce, type: 3}
@@ -46160,7 +46329,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1359024960}
+    m_TransformParent: {fileID: 597699054}
     m_Modifications:
     - target: {fileID: 1504739816223765999, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
       propertyPath: onToggleOn.m_PersistentCalls.m_Calls.Array.data[0].m_Target
@@ -46172,15 +46341,15 @@ PrefabInstance:
       objectReference: {fileID: 472294019}
     - target: {fileID: 3444846389581441185, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
       propertyPath: m_Name
-      value: ToggleItem
+      value: ToggleItem_smoothVoice
       objectReference: {fileID: 0}
     - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -169.9517
+      value: 77
       objectReference: {fileID: 0}
     - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 179.4
+      value: 35
       objectReference: {fileID: 0}
     - target: {fileID: 3962465206810330305, guid: 853cc970dc7f94874a9a05d73c23bbe0, type: 3}
       propertyPath: m_LocalPosition.z

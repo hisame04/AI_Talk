@@ -9,6 +9,8 @@ public class ConversationManager : MonoBehaviour
     [SerializeField] private OpenJTalkClient openJTalkClient;
     [SerializeField] private MikuTtsClient mikuTtsClient;
 
+    [SerializeField] private TalkUIController talkUIController;
+
     [SerializeField] private TMP_InputField _textInterface;
 
     [SerializeField] private bool isSmoothVoice;
@@ -83,10 +85,12 @@ public class ConversationManager : MonoBehaviour
     //使用する入力モードをトグルスイッチ経由で更新するメソッド
     public void SetVoiceInputOn()
     {
-        isVoiceInput = true;   
+        isVoiceInput = true; 
+        talkUIController.OnVoiceInputAble();  
     }
     public void SetVoiceInputOff()
     {
         isVoiceInput = false;
+        talkUIController.OnVoiceInputUnable();
     }
 }
