@@ -1,3 +1,8 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 using TMPro;
@@ -28,47 +33,43 @@ public class ConversationManager : MonoBehaviour
         whisperSpeechToText.StartRecording();
     }
 
-    public void OnStopRecording()
+    public async UniTask OnStopRecording()
     {
-        whisperSpeechToText.StopRecordingTranscribe(
-            onSuccess: (recordingText) =>
-            {
-                _textInterface.text = recordingText;
-                OnReceiveMikuReply(recordingText);
-            },
-            onError: (errorMessage) =>
-            {
-                Debug.LogError("Error occurred: " + errorMessage);
-            }
-        );
+        try
+        {
+            string recordingText = await whisperSpeechToText.StopRecordingTranscribe();
+            _textInterface.text = recordingText;
+            await OnReceiveMikuReplyAsync(recordingText);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("Error occurred: " + ex.Message);
+        }
     }
 
 
-    public void OnReceiveMikuReply(string userText)
+    public async UniTask OnReceiveMikuReplyAsync(string userText)
     {
-        aiChatController.SendMessageToMiku(
-            userText,
-            onSuccess: (mikuReply) =>
-            {
-                Debug.Log("ミク: " + mikuReply);
-                MikuReplyToSpeech(mikuReply);
-            },
-            onError: (errorMessage) =>
-            {
-                Debug.LogError("通信エラー: " + errorMessage);
-            }
-        );
+        try
+        {
+            string mikuReply = await aiChatController.SendMessageToMiku(userText,this.GetCancellationTokenOnDestroy());
+            await MikuReplyToSpeechAsync(mikuReply);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("Error occurred: " + ex.Message);
+        }
     }
 
-    public void MikuReplyToSpeech(string mikuReply)
+    public async UniTask MikuReplyToSpeechAsync(string mikuReply)
     {
         if (isSmoothVoice)
         {
-            mikuTtsClient.Speak(mikuReply);
+            await mikuTtsClient.SpeakAsync("1a_miku_default_rvc_(aple)", mikuReply, this.GetCancellationTokenOnDestroy());// 初音ミクモデルで音声を再生
         }
         else
         {
-            openJTalkClient.Speak(mikuReply);
+            await openJTalkClient.SpeakAsync(mikuReply, this.GetCancellationTokenOnDestroy());
         }
     }
 

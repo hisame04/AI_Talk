@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.IO;
 using TMPro;
 using UnityEngine.UI;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 public class WhisperSpeechToText : MonoBehaviour
 {
@@ -68,51 +70,25 @@ public class WhisperSpeechToText : MonoBehaviour
 	}
 
 	// レコーディングを止めて、Whisper APIに送信する
-	public void StopRecordingTranscribe(Action<string> onSuccess, Action<string> onError = null)
+	public async UniTask<string> StopRecordingTranscribe(CancellationToken cancellationToken = default)
 	{
 		StopRecording();
 
 		// AudioClipをWAV形式のバイナリデータに変換する
 		var audioData = WavUtility.FromAudioClip(clip);
 
-		// APIに送信するコルーチンを開始する
-		StartCoroutine(PostRequest(audioData, onSuccess, onError));
-	}
-
-	// 録音した音声データをWhisper APIに送信してテキストに変換する
-	IEnumerator PostRequest(byte[] audioData, Action<string> onSuccess, Action<string> onError)
-	{
 		// フォームデータを作成する
 		var formData = new List<IMultipartFormSection>();
 		formData.Add(new MultipartFormDataSection("model", "whisper-1"));
 		formData.Add(new MultipartFormDataSection("language", "ja"));
 		formData.Add(new MultipartFormFileSection("file", audioData, "audio.wav", "multipart/form-data"));
 
-		yield return openAIClient.PostMultipart(
-			whisper_apiUrl,
-			formData,
-			onSuccess: (responseText) =>
-			{
-			string recognizedText = "";
-				try
-				{
-				recognizedText = JsonUtility.FromJson<WhisperResponseModel>(responseText).text;
-				onSuccess?.Invoke(recognizedText);
-				}
-				catch (System.Exception e)
-				{
-				Debug.LogError(e.Message);
-				onError?.Invoke("Failed to parse response.");
-				}
+		// Whisper APIに送信してテキストを取得する
+		string responseText = await openAIClient.PostMultipartAsync(whisper_apiUrl, formData, cancellationToken);
+		var response = JsonUtility.FromJson<WhisperResponseModel>(responseText);
 
-			// 書き起こしされたテキストを出力する
-			Debug.Log("Input Text: " + recognizedText);
-			},
-			onError: (errorMessage) =>
-			{
-			Debug.LogError("Error: " + errorMessage);
-			}
-		);
+		//最終的な文字列を返す
+		return response.text;
 	}
 }
 

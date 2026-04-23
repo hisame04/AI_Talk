@@ -2,9 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.Networking;
-
+using Cysharp.Threading.Tasks;
 public class OpenAIClient : MonoBehaviour
 {
     private string apiKey;
@@ -22,12 +23,11 @@ public class OpenAIClient : MonoBehaviour
 
     // APIエンドポイントにJSONを送信する
     // チャットの文字の送信などに使用
-    public IEnumerator PostJson(string url, string json, Action<string> onSuccess, Action<string> onError = null)
+    public async UniTask<string> PostJsonAsync(string url, string json, CancellationToken cancellationToken = default)
     {
         if (!HasApiKey)
         {
-            onError?.Invoke("OPENAI_API_KEY が未設定です。");
-            yield break;
+            throw new InvalidOperationException("OPENAI_API_KEY が未設定です。");
         }
 
         // 送信用リクエストの作成
@@ -43,7 +43,7 @@ public class OpenAIClient : MonoBehaviour
         request.SetRequestHeader("Authorization", "Bearer " + apiKey);
 
         //リクエストの送信処理
-        yield return request.SendWebRequest();
+        await request.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
 
         //　HTTP/通信失敗時にエラーをまとめる
         if (request.result != UnityWebRequest.Result.Success)
@@ -53,23 +53,20 @@ public class OpenAIClient : MonoBehaviour
             {
                 errorMessage += "\n" + request.downloadHandler.text;
             }
-            //指定されたエラーコールバックがあれば呼び出す
-            onError?.Invoke(errorMessage);
-            yield break;
+            throw new Exception(errorMessage);
         }
 
-        //指定された成功時コールバックがあれば呼び出す
-        onSuccess?.Invoke(request.downloadHandler.text);
+        //最終的な結果を返す
+        return request.downloadHandler.text;   
     }
 
     // APIエンドポイントに複数データを含んだリストを送信する
     // 音声の送信などに使用
-    public IEnumerator PostMultipart(string url, List<IMultipartFormSection> formData, Action<string> onSuccess, Action<string> onError = null)
+    public async UniTask<string> PostMultipartAsync(string url, List<IMultipartFormSection> formData, CancellationToken cancellationToken = default)
     {
         if (!HasApiKey)
         {
-            onError?.Invoke("OPENAI_API_KEY が未設定です。");
-            yield break;
+            throw new InvalidOperationException("OPENAI_API_KEY が未設定です。");
         }
 
         // 送信用リクエストを作成
@@ -78,7 +75,7 @@ public class OpenAIClient : MonoBehaviour
         request.SetRequestHeader("Authorization", "Bearer " + apiKey);
 
         //リクエストの送信処理
-        yield return request.SendWebRequest();
+        await request.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
 
         //　HTTP/通信失敗時にエラーをまとめる
         if (request.result != UnityWebRequest.Result.Success)
@@ -88,12 +85,10 @@ public class OpenAIClient : MonoBehaviour
             {
                 errorMessage += "\n" + request.downloadHandler.text;
             }
-            //指定されたエラーコールバックがあれば呼び出す
-            onError?.Invoke(errorMessage);
-            yield break;
+            throw new Exception(errorMessage);
         }
 
-        //指定された成功時コールバックがあれば呼び出す
-        onSuccess?.Invoke(request.downloadHandler.text);
+        //最終的な結果を返す
+        return request.downloadHandler.text;
     }
 }

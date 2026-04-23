@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using System.Runtime.InteropServices;
 using UnityEngine;
  using UnityEngine.Networking;
@@ -26,33 +28,46 @@ public class OpenJTalkClient : MonoBehaviour
         OpenJTalk_initialize(voicePath, dicPath);
     }
 
-    public void Speak(string text)
+    public async UniTask SpeakAsync(string text, CancellationToken cancellationToken = default)
     {
-        StartCoroutine(SpeakCoroutine(text));
+        string wavPath = await RequestAudioURLAsync(text, cancellationToken);
+        var clip = await LoadAudioClipAsync(wavPath, cancellationToken);
+        PlayAudioClip(clip);
     }
 
-    IEnumerator SpeakCoroutine(string text)
+    // TTSリクエストから音声ファイルURLを取得するメソッド
+    private async UniTask<string> RequestAudioURLAsync(string text, CancellationToken cancellationToken = default)
     {
         string wavPath = Path.Combine(Application.persistentDataPath, "jtalk.wav");
-
         bool ok = OpenJTalk_speak_to_wav(text, wavPath);
         if (!ok)
         {
             Debug.LogError("WAV書き出しに失敗しました");
-            yield break;
+            return null;
         }
+        return wavPath;
+    }
 
+    // 音声URLからAudioClipを取得するメソッド
+    private async UniTask<AudioClip> LoadAudioClipAsync(string wavPath, CancellationToken cancellationToken = default)
+    {
         string url = "file://" + wavPath;
         using var req = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.WAV);
-        yield return req.SendWebRequest();
+        await req.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
 
         if (req.result != UnityWebRequest.Result.Success)
         {
             Debug.LogError("WAV読み込み失敗: " + req.error);
-            yield break;
+            return null;
         }
 
-        var clip = DownloadHandlerAudioClip.GetContent(req);
+        return DownloadHandlerAudioClip.GetContent(req);
+    }
+
+
+    // AudioClipを再生するメソッド
+    private void PlayAudioClip(AudioClip clip)
+    {
         audioSource.clip = clip;
         audioSource.Play();
     }
