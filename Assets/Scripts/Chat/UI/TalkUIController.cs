@@ -69,7 +69,7 @@ public class TalkUIController : MonoBehaviour
         try
         {
             //APIに入力内容を送信
-            await conversationManager.OnReceiveMikuReplyAsync(text);
+            await conversationManager.OnReceiveReplyAsync(text);
         }
         finally
         {

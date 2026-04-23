@@ -14,17 +14,22 @@ public class ConversationManager : MonoBehaviour
     [SerializeField] private OpenJTalkClient openJTalkClient;
     [SerializeField] private MikuTtsClient mikuTtsClient;
 
+    [SerializeField] private AICharactorData aiCharactorData;
+
     [SerializeField] private TalkUIController talkUIController;
 
     [SerializeField] private TMP_InputField _textInterface;
 
     [SerializeField] private bool isSmoothVoice;
     [SerializeField] private bool isVoiceInput;
+    [SerializeField] private int charactorId;
+    private CharactorData currentCharactorData;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    void Awake()
     {
-        
+        charactorId = 0; //初期キャラクターIDを0に設定
+        SetCharactorId(charactorId); //初期キャラクターの設定
     }
 
     
@@ -39,7 +44,7 @@ public class ConversationManager : MonoBehaviour
         {
             string recordingText = await whisperSpeechToText.StopRecordingTranscribe();
             _textInterface.text = recordingText;
-            await OnReceiveMikuReplyAsync(recordingText);
+            await OnReceiveReplyAsync(recordingText);
         }
         catch (Exception ex)
         {
@@ -48,12 +53,12 @@ public class ConversationManager : MonoBehaviour
     }
 
 
-    public async UniTask OnReceiveMikuReplyAsync(string userText)
+    public async UniTask OnReceiveReplyAsync(string userText)
     {
         try
         {
-            string mikuReply = await aiChatController.SendMessageToMiku(userText,this.GetCancellationTokenOnDestroy());
-            await MikuReplyToSpeechAsync(mikuReply);
+            string aiReply = await aiChatController.SendMessageToAI(userText,this.GetCancellationTokenOnDestroy());
+            await ReplyToSpeechAsync(aiReply);
         }
         catch (Exception ex)
         {
@@ -61,15 +66,15 @@ public class ConversationManager : MonoBehaviour
         }
     }
 
-    public async UniTask MikuReplyToSpeechAsync(string mikuReply)
+    public async UniTask ReplyToSpeechAsync(string aiReply)
     {
         if (isSmoothVoice)
         {
-            await mikuTtsClient.SpeakAsync("1a_miku_default_rvc_(aple)", mikuReply, this.GetCancellationTokenOnDestroy());// 初音ミクモデルで音声を再生
+            await mikuTtsClient.SpeakAsync("1a_miku_default_rvc_(aple)", aiReply, this.GetCancellationTokenOnDestroy());// 初音ミクモデルで音声を再生
         }
         else
         {
-            await openJTalkClient.SpeakAsync(mikuReply, this.GetCancellationTokenOnDestroy());
+            await openJTalkClient.SpeakAsync(aiReply, this.GetCancellationTokenOnDestroy());
         }
     }
 
@@ -93,5 +98,12 @@ public class ConversationManager : MonoBehaviour
     {
         isVoiceInput = false;
         talkUIController.OnVoiceInputUnable();
+    }
+
+    public void SetCharactorId(int id)
+    {
+        charactorId = id;
+        currentCharactorData = Array.Find(aiCharactorData.charactors, c => c.id == id);
+        aiChatController.SetCharactorData(currentCharactorData);
     }
 }

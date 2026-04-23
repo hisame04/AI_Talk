@@ -17,11 +17,12 @@ public class AIChatController : MonoBehaviour
     private bool smoothVoice;
     public OpenJTalkClient openJTalkClient;
     public MikuTtsClient mikuTtsClient;
+    private CharactorData currentCharactorData;
+    private string charactorSetting;
 
     void Start()
     {
-        //キャラクターを初音ミクに設定
-        string charactorSetting = "あなたは初音ミクです。短く可愛らしく返事をしてください。英単語はアルファベットはカタカナに置き換えてから返答してください。絵文字や顔文字の使用は禁止です。";
+        //キャラクター設定を追加
         AssistantSetCharactor(charactorSetting);
     }
 
@@ -32,7 +33,7 @@ public class AIChatController : MonoBehaviour
     }
 
     // 会話を始める関数（UIのボタンなどから呼ぶ）
-    public async UniTask<string> SendMessageToMiku(string userMessage, CancellationToken cancellationToken = default)
+    public async UniTask<string> SendMessageToAI(string userMessage, CancellationToken cancellationToken = default)
     {
         //入力内容の記憶
         var userMsg = new Message { role = "user", content = userMessage };
@@ -48,14 +49,21 @@ public class AIChatController : MonoBehaviour
         string responseText = await openAIClient.PostJsonAsync(chat_apiUrl, json, cancellationToken);
         
         var response = JsonConvert.DeserializeObject<OpenAIResponse>(responseText);
-        string mikuReply = response.choices[0].message.content;
-
+        string aiReply = response.choices[0].message.content;
+        Debug.Log("AI Reply: " + aiReply);//【デバッグ用】返答のログ出力
 
         //返答の記憶
-        var assistantMsg = new Message { role = "assistant", content = mikuReply };
+        var assistantMsg = new Message { role = "assistant", content = aiReply };
         messageHistory.Add(assistantMsg);
 
-        return mikuReply;
+        return aiReply;
+    }
+
+    // キャラクターのデータを設定する関数
+    public void SetCharactorData(CharactorData charactorData)
+    {
+        currentCharactorData = charactorData;
+        charactorSetting = charactorData.charactorSettings;
     }
 
     // レスポンス受け取り用のクラス定義
