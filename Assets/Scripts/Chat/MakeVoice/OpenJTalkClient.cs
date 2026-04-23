@@ -15,8 +15,6 @@ public class OpenJTalkClient : MonoBehaviour
     [DllImport(LibName)] static extern bool OpenJTalk_speak_to_wav(string text, string wavPath);
     [DllImport(LibName)] static extern void OpenJTalk_clear();
 
-    [SerializeField] AudioSource audioSource;
-
     string dicPath;
     string voicePath;
 
@@ -28,11 +26,11 @@ public class OpenJTalkClient : MonoBehaviour
         OpenJTalk_initialize(voicePath, dicPath);
     }
 
-    public async UniTask SpeakAsync(string text, CancellationToken cancellationToken = default)
+    public async UniTask<AudioClip> GetAudioAsync(string text, CancellationToken cancellationToken = default)
     {
         string wavPath = await RequestAudioURLAsync(text, cancellationToken);
         var clip = await LoadAudioClipAsync(wavPath, cancellationToken);
-        PlayAudioClip(clip);
+        return clip;
     }
 
     // TTSリクエストから音声ファイルURLを取得するメソッド
@@ -62,14 +60,6 @@ public class OpenJTalkClient : MonoBehaviour
         }
 
         return DownloadHandlerAudioClip.GetContent(req);
-    }
-
-
-    // AudioClipを再生するメソッド
-    private void PlayAudioClip(AudioClip clip)
-    {
-        audioSource.clip = clip;
-        audioSource.Play();
     }
 
     void OnDestroy()
