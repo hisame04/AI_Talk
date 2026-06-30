@@ -105,18 +105,18 @@ public class ConversationManager : MonoBehaviour
     private async UniTask<AudioClip> ReplyToAudioAsync(string aiReply)
     {
         AudioClip clip;
-        // ローカル実行で音声ファイルを取得
-        // if (isSmoothVoice)
-        // {
-        //     clip = await mikuTtsClient.GetAudioAsync("1a_miku_default_rvc_(aple)", aiReply, this.GetCancellationTokenOnDestroy());// 初音ミクモデルで音声を再生
-        // }
-        // else
-        // {
-        //     clip = await openJTalkClient.GetAudioAsync(aiReply, this.GetCancellationTokenOnDestroy());
-        // }
+        if (isSmoothVoice)
+        {
+            // ローカル実行で音声ファイルを取得
+            // clip = await mikuTtsClient.GetAudioAsync("1a_miku_default_rvc_(aple)", aiReply, this.GetCancellationTokenOnDestroy());// 初音ミクモデルで音声を再生
+            // API経由で音声ファイルを取得
+            clip = await mikuTtsClient.CallTTS("1a_miku_default_rvc_(aple)", aiReply);
+        }
+        else
+        {
+            clip = await openJTalkClient.GetAudioAsync(aiReply, this.GetCancellationTokenOnDestroy());
+        }
 
-        // API経由で音声ファイルを取得
-        clip = await mikuTtsClient.CallTTS("1a_miku_default_rvc_(aple)", aiReply);
         return clip;
     }
 
