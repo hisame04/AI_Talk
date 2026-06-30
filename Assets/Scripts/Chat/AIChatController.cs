@@ -28,6 +28,7 @@ public class AIChatController : MonoBehaviour
     {
         //キャラクター設定を追加
         AssistantSetCharactor();
+        Debug.Log(Application.persistentDataPath);
     }
 
     private void AssistantSetCharactor()

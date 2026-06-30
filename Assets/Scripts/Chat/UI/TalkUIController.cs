@@ -92,4 +92,5 @@ public class TalkUIController : MonoBehaviour
         sendButton.gameObject.SetActive(true); //テキスト送信ボタンを表示
         inputField.gameObject.SetActive(true); //テキスト入力フィールドを表示
     }
+
 }

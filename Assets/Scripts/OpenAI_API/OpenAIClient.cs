@@ -6,6 +6,7 @@ using System.Threading;
 using UnityEngine;
 using UnityEngine.Networking;
 using Cysharp.Threading.Tasks;
+using TMPro;
 public class OpenAIClient : MonoBehaviour
 {
     private string apiKey;
@@ -90,5 +91,10 @@ public class OpenAIClient : MonoBehaviour
 
         //最終的な結果を返す
         return request.downloadHandler.text;
+    }
+
+    public void SetAPIKey(string key)
+    {
+        apiKey = key;
     }
 }
