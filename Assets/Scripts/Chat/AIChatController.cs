@@ -8,6 +8,9 @@ using TMPro;
 using Newtonsoft.Json;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using System.Text.RegularExpressions;
+using System.Drawing;
+using NUnit.Framework;
 
 public class AIChatController : MonoBehaviour
 {
@@ -19,16 +22,17 @@ public class AIChatController : MonoBehaviour
     public MikuTtsClient mikuTtsClient;
     private CharactorData currentCharactorData;
     private string charactorSetting;
+    private string systemPrompt;
 
     void Start()
     {
         //キャラクター設定を追加
-        AssistantSetCharactor(charactorSetting);
+        AssistantSetCharactor();
     }
 
-    private void AssistantSetCharactor(string charactorSetting)
+    private void AssistantSetCharactor()
     {
-        var systemMessage = new Message { role = "system", content = charactorSetting };
+        var systemMessage = new Message { role = "system", content = systemPrompt };
         messageHistory.Add(systemMessage);
     }
 
@@ -63,7 +67,9 @@ public class AIChatController : MonoBehaviour
     public void SetCharactorData(CharactorData charactorData)
     {
         currentCharactorData = charactorData;
-        charactorSetting = charactorData.charactorSettings;
+        charactorSetting = charactorData.charactorPrompt;
+
+        systemPrompt = PromptTemplates.systemPromptTemplate.Replace("{CHARACTER_PROMPT}", charactorSetting);
     }
 
     // レスポンス受け取り用のクラス定義

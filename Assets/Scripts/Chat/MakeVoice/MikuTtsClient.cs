@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 public class MikuTtsClient : MonoBehaviour
 { 
     [SerializeField] private string proxyUrl = "http://127.0.0.1:8000/tts"; // インスペクターから設定できるプロキシURLを保持する // ゲーミングPCはhttp://10.0.0.19:8000/tts
-    [SerializeField] private AudioSource audioSource; // 再生に使うAudioSource参照を保持する
     private UnityWebRequest activeRequest;// 現在進行中のリクエストを保持しておく変数
     [System.Serializable]
     private class TtsRequest { public Args args; } // リクエストボディの外側構造を表すクラスを定義する
@@ -29,12 +28,12 @@ public class MikuTtsClient : MonoBehaviour
     }
     [System.Serializable]
     private class AudioUrlResponse { public string audio_url; } // 返却JSONのaudio_urlだけを受けるクラスを定義する
-    public async UniTask SpeakAsync(string modelName, string text, CancellationToken cancellationToken = default)
+    public async UniTask<AudioClip> GetAudioAsync(string modelName, string text, CancellationToken cancellationToken = default)
     {
         Debug.Log("mikuTTS Speak");
         string wavPath = await RequestAudioURLAsync(modelName, text, cancellationToken);
         var clip = await LoadAudioClipAsync(wavPath, cancellationToken);
-        PlayAudioClip(clip);
+        return clip;
     }
 
     // TTSリクエストから音声ファイルURLを取得するメソッド
@@ -74,14 +73,6 @@ public class MikuTtsClient : MonoBehaviour
             throw new Exception(audioReq.error); // エラー内容を例外として投げる        
         }
         return DownloadHandlerAudioClip.GetContent(audioReq); // 取得したAudioClipを返す
-    }
-
-
-    // AudioClipを再生するメソッド
-    private void PlayAudioClip(AudioClip clip)
-    {        
-        audioSource.clip = clip; // AudioSourceにクリップを設定する
-        audioSource.Play(); // クリップの再生を開始する
     }
 
     private TtsRequest CreateTtsRequest(string modelName,string text)

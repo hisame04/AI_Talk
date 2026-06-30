@@ -6045,6 +6045,7 @@ MonoBehaviour:
   whisperSpeechToText: {fileID: 6616639}
   openJTalkClient: {fileID: 1327669016}
   mikuTtsClient: {fileID: 1347118622}
+  audioSource: {fileID: 890252088}
   aiCharactorData: {fileID: 11400000, guid: 08dc1a19558c14e0f8a9bff89a6cc7fc, type: 2}
   talkUIController: {fileID: 288787678}
   _textInterface: {fileID: 1829623606}
@@ -19427,7 +19428,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efcbebf64465946a6b6d9b461b115d43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OpenJTalkClient
-  audioSource: {fileID: 890252088}
 --- !u!4 &1327669017
 Transform:
   m_ObjectHideFlags: 0
@@ -19775,7 +19775,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MikuTtsClient
   proxyUrl: http://127.0.0.1:8000/tts
-  audioSource: {fileID: 890252088}
 --- !u!1 &1352088549
 GameObject:
   m_ObjectHideFlags: 0
