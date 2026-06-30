@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections; // コルーチンの型(IEnumerator)を使うための名前空間を読み込む
 using System.Text; // 文字列をUTF-8バイトに変換するための名前空間を読み込む
 using UnityEngine; // Unityの基本APIを使うための名前空間を読み込む
@@ -7,11 +8,21 @@ using Cysharp.Threading.Tasks;
 using System.Threading;
 using UniVRM10;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Runtime.InteropServices;
+using System.Net;
 
 public class MikuTtsClient : MonoBehaviour
 { 
+    [SerializeField] private string spaceRoot = "https://john6666-mikutts.hf.space";
+    [SerializeField] private string apiUrl = "https://john6666-mikutts.hf.space/gradio_api/call/tts";
     [SerializeField] private string proxyUrl = "http://127.0.0.1:8000/tts"; // インスペクターから設定できるプロキシURLを保持する // ゲーミングPCはhttp://10.0.0.19:8000/tts
     private UnityWebRequest activeRequest;// 現在進行中のリクエストを保持しておく変数
+
+    //*
+    // ローカル実行で取得する方法
+    // *//
     [System.Serializable]
     private class TtsRequest { public Args args; } // リクエストボディの外側構造を表すクラスを定義する
     [System.Serializable]
@@ -102,5 +113,163 @@ public class MikuTtsClient : MonoBehaviour
             activeRequest.Dispose();
             activeRequest = null;
         }
+    }
+
+
+    //*
+    // API経由で取得する方法
+    // *//
+    /* TTSのAPIを叩き音声ファイルを返すメソッド */
+    public async UniTask<AudioClip> CallTTS(string modelName, string text)
+    {
+        string url = apiUrl;
+
+        var payload = new
+        {
+            data = new object[]
+            {
+                modelName,
+                0,
+                0,
+                0,
+                text,
+                "ja-JP-NanamiNeural-Female",
+                6,
+                "rmvpe",
+                1,
+                0.33
+            }
+        };
+        string json = JsonConvert.SerializeObject(payload);
+
+        string eventId = await PostTTS(json);
+        if(string.IsNullOrEmpty(eventId)) return null;
+
+        string resultText = await GetTTS(eventId);
+        if(string.IsNullOrEmpty(resultText)) return null;
+
+        string audioUrl = ExtractResultAudioUrl(resultText);
+        if (string.IsNullOrEmpty(audioUrl))
+        {
+            Debug.Log("音声URLが見つかりませんでした");
+            return null;
+        }
+
+        AudioClip clip = await DownloadAudioClip(audioUrl);
+        if(clip == null) return null;
+        
+        return clip;
+    }
+
+    /* apiにPOSTするためのメソッド */
+    async UniTask<string> PostTTS(string json)
+    {
+        using var req = new UnityWebRequest(apiUrl, "POST");
+        
+        byte[] body = Encoding.UTF8.GetBytes(json);
+
+        req.uploadHandler = new UploadHandlerRaw(body);
+        req.downloadHandler = new DownloadHandlerBuffer();
+        req.SetRequestHeader("Content-Type", "application/json");
+
+        await req.SendWebRequest().ToUniTask();
+
+        if(req.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError(req.error);
+            return null;
+        }
+        JObject postResult = JObject.Parse(req.downloadHandler.text);
+
+        return postResult["event_id"].ToString();// 音声ファイルを取得するためのIDを返す
+        
+    }
+
+    /* apiにGETするためのメソッド */
+    async UniTask<string> GetTTS(string eventId)
+    {
+        string getUrl = apiUrl + "/" + eventId;
+
+        using var req =UnityWebRequest.Get(getUrl);
+        await req.SendWebRequest().ToUniTask();
+
+        if (req.result != UnityWebRequest.Result.Success)
+        {
+            Debug.Log(req.error);
+            return null;
+        }
+
+        return req.downloadHandler.text;
+    }
+
+    /* 音声ファイルの取得先を特定するメソッド */
+    string ExtractResultAudioUrl(string sseText)
+    {
+        var dataLines = sseText
+            .Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith("data:"))
+            .Select(line => line.Substring("data:".Length).Trim());
+
+        foreach (string json in dataLines.Reverse())
+        {
+            if (string.IsNullOrEmpty(json) || json == "null")
+            {
+                continue;
+            }
+
+            JToken token;
+            try
+            {
+                token = JToken.Parse(json);
+            }
+            catch (JsonReaderException)
+            {
+                continue;
+            }
+
+            if (token.Type != JTokenType.Array)
+            {
+                continue;
+            }
+
+            JArray data = (JArray)token;
+            if (data.Count <= 2 || data[2] == null)
+            {
+                continue;
+            }
+
+            string url = data[2]["url"]?.ToString();
+            if (string.IsNullOrEmpty(url))
+            {
+                continue;
+            }
+
+            if (url.StartsWith("/"))
+            {
+                url = spaceRoot + url;
+            }
+
+            return url;
+        }
+
+        Debug.LogError("SSEレスポンスから有効な音声URLを取得できませんでした。\n" + sseText);
+        return null;
+    }
+
+    /* 音声ファイルを取得するメソッド */
+    async UniTask<AudioClip> DownloadAudioClip(string audioUrl)
+    {
+        using var req = UnityWebRequestMultimedia.GetAudioClip(audioUrl,AudioType.WAV);
+        
+        await req.SendWebRequest().ToUniTask();
+
+        if(req.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError(req.error);
+            return null;
+        }
+
+        return DownloadHandlerAudioClip.GetContent(req);
     }
 }
