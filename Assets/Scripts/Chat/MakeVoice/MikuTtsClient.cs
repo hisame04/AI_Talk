@@ -31,6 +31,7 @@ public class MikuTtsClient : MonoBehaviour
     private int modeChangeVersion;
 
     public ConnectionMode CurrentConnectionMode => activeConnectionMode;
+    public UniTask WaitUntilConnectionReadyAsync() => connectionReadyTask;
 
     private void Awake()
     {
