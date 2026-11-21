@@ -26,7 +26,7 @@ public class ConversationManager : MonoBehaviour
 
     [SerializeField] private TMP_InputField _textInterface;
 
-    [SerializeField] private bool isSmoothVoice;
+    private bool isSmoothVoice;
     [SerializeField] private bool isVoiceInput;
     [SerializeField] private int charactorId;
     [SerializeField] private string initialMikuText = "スムーズボイスモードだよ。";
@@ -46,6 +46,7 @@ public class ConversationManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
+        isSmoothVoice = false; // 起動時はMikuTTSの準備完了を待たずにNormalを使用する
         charactorId = 0; //初期キャラクターIDを0に設定
         SetCharactorId(charactorId); //初期キャラクターの設定
     }
@@ -130,6 +131,10 @@ public class ConversationManager : MonoBehaviour
     private void SetMikuTtsPreparationState(MikuTtsPreparationState state)
     {
         mikuTtsPreparationState = state;
+        if (state == MikuTtsPreparationState.Failed)
+        {
+            isSmoothVoice = false;
+        }
         OnMikuTtsPreparationStateChanged?.Invoke(state);
     }
 
@@ -207,7 +212,7 @@ public class ConversationManager : MonoBehaviour
     private async UniTask<AudioClip> ReplyToAudioAsync(string aiReply)
     {
         AudioClip clip;
-        if (isSmoothVoice)
+        if (isSmoothVoice && mikuTtsPreparationState == MikuTtsPreparationState.Ready)
         {
             // API経由で音声ファイルを取得
             clip = await mikuTtsClient.CallTTS(MikuModelName, aiReply);
