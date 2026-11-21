@@ -39,6 +39,8 @@ public class ConversationManager : MonoBehaviour
     private MikuTtsPreparationState mikuTtsPreparationState = MikuTtsPreparationState.Preparing;
 
     public MikuTtsPreparationState CurrentMikuTtsPreparationState => mikuTtsPreparationState;
+    public bool IsSmoothVoice => isSmoothVoice;
+    public bool IsVoiceInput => isVoiceInput;
     public event Action<MikuTtsPreparationState> OnMikuTtsPreparationStateChanged;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
