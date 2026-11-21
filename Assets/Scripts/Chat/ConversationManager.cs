@@ -207,8 +207,6 @@ public class ConversationManager : MonoBehaviour
         AudioClip clip;
         if (isSmoothVoice)
         {
-            // ローカル実行で音声ファイルを取得
-            // clip = await mikuTtsClient.GetAudioAsync("1a_miku_default_rvc_(aple)", aiReply, this.GetCancellationTokenOnDestroy());// 初音ミクモデルで音声を再生
             // API経由で音声ファイルを取得
             clip = await mikuTtsClient.CallTTS(MikuModelName, aiReply);
         }
