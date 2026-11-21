@@ -13,20 +13,45 @@ using System.Net;
 
 public class MikuTtsClient : MonoBehaviour
 { 
+    public enum ConnectionMode
+    {
+        Remote,
+        Local
+    }
+
+    [SerializeField] private ConnectionMode connectionMode = ConnectionMode.Remote;
     [SerializeField] private string remoteSpaceRoot = "https://john6666-mikutts.hf.space"; // リモートスペースのルートURL 
     [SerializeField] private string remoteApiUrl = "https://john6666-mikutts.hf.space/gradio_api/call/tts"; // リモートスペースのTTS API URL
     [SerializeField] private string localSpaceRoot = "http://127.0.0.1:7860"; // ローカルスペースのルートURL 
     [SerializeField] private string localApiUrl = "http://127.0.0.1:7860/gradio_api/call/tts";// ローカルスペースのTTS API URL
-    private string spaceRoot = "https://john6666-mikutts.hf.space";
-    private string apiUrl = "https://john6666-mikutts.hf.space/gradio_api/call/tts";
+    private string spaceRoot;
+    private string apiUrl;
+
+    private void Awake()
+    {
+        ApplyConnectionMode();
+    }
+
+    private void ApplyConnectionMode()
+    {
+        if (connectionMode == ConnectionMode.Local)
+        {
+            spaceRoot = localSpaceRoot;
+            apiUrl = localApiUrl;
+        }
+        else
+        {
+            spaceRoot = remoteSpaceRoot;
+            apiUrl = remoteApiUrl;
+        }
+    }
+
     //*
     // API経由で取得する方法
     // *//
     /* TTSのAPIを叩き音声ファイルを返すメソッド */
     public async UniTask<AudioClip> CallTTS(string modelName, string text)
     {
-        string url = apiUrl;
-
         var payload = new
         {
             data = new object[]
