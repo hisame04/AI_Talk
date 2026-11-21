@@ -10,6 +10,10 @@ using System.Text.RegularExpressions;
 
 public class ConversationManager : MonoBehaviour
 {
+    public enum MikuTtsPreparationState { Preparing, Ready, Failed }
+
+    private const string MikuModelName = "1a_miku_default_rvc_(aple)";
+
     [SerializeField] private AIChatController aiChatController;
     [SerializeField] private WhisperSpeechToText whisperSpeechToText;
     [SerializeField] private OpenJTalkClient openJTalkClient;
@@ -25,7 +29,17 @@ public class ConversationManager : MonoBehaviour
     [SerializeField] private bool isSmoothVoice;
     [SerializeField] private bool isVoiceInput;
     [SerializeField] private int charactorId;
+    [SerializeField] private string initialMikuText = "スムーズボイスモードだよ。";
+    [SerializeField] private string initialJTalkText = "ノーマルボイスモードだよ。";
     private CharactorData currentCharactorData;
+    private AudioClip initialMikuAudio;
+    private AudioClip initialJTalkAudio;
+    private bool pendingJTalkGreeting;
+    private bool preparingJTalkAudio;
+    private MikuTtsPreparationState mikuTtsPreparationState = MikuTtsPreparationState.Preparing;
+
+    public MikuTtsPreparationState CurrentMikuTtsPreparationState => mikuTtsPreparationState;
+    public event Action<MikuTtsPreparationState> OnMikuTtsPreparationStateChanged;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
@@ -34,9 +48,93 @@ public class ConversationManager : MonoBehaviour
         SetCharactorId(charactorId); //初期キャラクターの設定
     }
 
+    void Start()
+    {
+        PrepareInitialMikuAudioAsync().Forget();
+        PrepareInitialJTalkAudioAsync().Forget();
+    }
+
+    public void RetryInitialAudioPreparation()
+    {
+        if (mikuTtsPreparationState == MikuTtsPreparationState.Failed)
+        {
+            PrepareInitialMikuAudioAsync().Forget();
+        }
+    }
+
+    private async UniTask PrepareInitialMikuAudioAsync()
+    {
+        SetMikuTtsPreparationState(MikuTtsPreparationState.Preparing);
+        try
+        {
+            initialMikuAudio = await mikuTtsClient.CallTTS(MikuModelName, initialMikuText);
+            if (this == null) return;
+
+            SetMikuTtsPreparationState(initialMikuAudio != null
+                ? MikuTtsPreparationState.Ready
+                : MikuTtsPreparationState.Failed);
+            if (initialMikuAudio != null && isSmoothVoice)
+            {
+                PlayAudio(initialMikuAudio);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (this == null) return;
+            Debug.LogError($"MikuTTSの初期音声生成に失敗: {ex.Message}");
+            SetMikuTtsPreparationState(MikuTtsPreparationState.Failed);
+        }
+    }
+
+    private async UniTask PrepareInitialJTalkAudioAsync()
+    {
+        if (preparingJTalkAudio) return;
+        preparingJTalkAudio = true;
+        try
+        {
+            initialJTalkAudio = await openJTalkClient.GetAudioAsync(initialJTalkText,
+                this.GetCancellationTokenOnDestroy());
+            if (this == null) return;
+
+            if (initialJTalkAudio == null)
+            {
+                Debug.LogError("OpenJTalkの初期音声生成に失敗しました。");
+                return;
+            }
+
+            if (pendingJTalkGreeting && !isSmoothVoice)
+            {
+                pendingJTalkGreeting = false;
+                PlayAudio(initialJTalkAudio);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // オブジェクト破棄時は生成を終了する
+        }
+        catch (Exception ex)
+        {
+            if (this != null)
+            {
+                Debug.LogError($"OpenJTalkの初期音声生成に失敗: {ex.Message}");
+            }
+        }
+        finally
+        {
+            preparingJTalkAudio = false;
+        }
+    }
+
+    private void SetMikuTtsPreparationState(MikuTtsPreparationState state)
+    {
+        mikuTtsPreparationState = state;
+        OnMikuTtsPreparationStateChanged?.Invoke(state);
+    }
+
     
     public void OnStartRecording()
     {
+        StopInitialGreeting();
         whisperSpeechToText.StartRecording();
     }
 
@@ -59,6 +157,8 @@ public class ConversationManager : MonoBehaviour
     {
         try
         {
+            StopInitialGreeting();
+
             //AIから返答を取得
             string aiReply = await aiChatController.SendMessageToAI(userText,this.GetCancellationTokenOnDestroy());
             // Debug.Log("Final Reply: " + aiReply);
@@ -110,7 +210,7 @@ public class ConversationManager : MonoBehaviour
             // ローカル実行で音声ファイルを取得
             // clip = await mikuTtsClient.GetAudioAsync("1a_miku_default_rvc_(aple)", aiReply, this.GetCancellationTokenOnDestroy());// 初音ミクモデルで音声を再生
             // API経由で音声ファイルを取得
-            clip = await mikuTtsClient.CallTTS("1a_miku_default_rvc_(aple)", aiReply);
+            clip = await mikuTtsClient.CallTTS(MikuModelName, aiReply);
         }
         else
         {
@@ -125,6 +225,7 @@ public class ConversationManager : MonoBehaviour
     {        
         if (clip != null)
         {
+            if (audioSource.isPlaying) audioSource.Stop();
             audioSource.clip = clip; // クリップの再生を開始する
             audioSource.Play();
         }   
@@ -153,11 +254,43 @@ public class ConversationManager : MonoBehaviour
     //使用する読み上げモードをトグルスイッチ経由で更新するメソッド
     public void SetSmoothVoiceOn()
     {
+        if (mikuTtsPreparationState != MikuTtsPreparationState.Ready)
+        {
+            Debug.LogWarning("MikuTTSはまだ準備できていません。");
+            return;
+        }
         isSmoothVoice = true;
+        pendingJTalkGreeting = false;
+        Debug.Log("MikuTTSの初期音声を再生します。");
+        PlayAudio(initialMikuAudio);
     }
     public void SetSmoothVoiceOff()
     {
         isSmoothVoice = false;
+        if (initialJTalkAudio != null)
+        {
+            Debug.Log("OpenJTalkの初期音声を再生します。");
+            PlayAudio(initialJTalkAudio);
+        }
+        else
+        {
+            pendingJTalkGreeting = true;
+            Debug.Log("OpenJTalkの初期音声を準備中です。");
+            if (!preparingJTalkAudio)
+            {
+                PrepareInitialJTalkAudioAsync().Forget();
+            }
+        }
+    }
+
+    private void StopInitialGreeting()
+    {
+        pendingJTalkGreeting = false;
+        if (audioSource.isPlaying &&
+            (audioSource.clip == initialMikuAudio || audioSource.clip == initialJTalkAudio))
+        {
+            audioSource.Stop();
+        }
     }
 
     //使用する入力モードをトグルスイッチ経由で更新するメソッド

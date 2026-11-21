@@ -18,7 +18,7 @@ public class OpenJTalkClient : MonoBehaviour
     string dicPath;
     string voicePath;
 
-    void Start()
+    void Awake()
     {
         dicPath = System.IO.Path.Combine(Application.streamingAssetsPath, "mecab-naist-jdic");
         voicePath = System.IO.Path.Combine(Application.streamingAssetsPath, "Miku_Voice.htsvoice");
@@ -28,15 +28,32 @@ public class OpenJTalkClient : MonoBehaviour
 
     public async UniTask<AudioClip> GetAudioAsync(string text, CancellationToken cancellationToken = default)
     {
-        string wavPath = await RequestAudioURLAsync(text, cancellationToken);
-        var clip = await LoadAudioClipAsync(wavPath, cancellationToken);
-        return clip;
+        cancellationToken.ThrowIfCancellationRequested();
+        string wavPath = WriteAudioToWav(text);
+        if (string.IsNullOrEmpty(wavPath)) return null;
+
+        try
+        {
+            return await LoadAudioClipAsync(wavPath, cancellationToken);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(wavPath)) File.Delete(wavPath);
+            }
+            catch (IOException ex)
+            {
+                Debug.LogWarning($"一時WAVを削除できませんでした: {ex.Message}");
+            }
+        }
     }
 
-    // TTSリクエストから音声ファイルURLを取得するメソッド
-    private async UniTask<string> RequestAudioURLAsync(string text, CancellationToken cancellationToken = default)
+    // テキストから一時WAVを生成するメソッド
+    private string WriteAudioToWav(string text)
     {
-        string wavPath = Path.Combine(Application.persistentDataPath, "jtalk.wav");
+        string wavPath = Path.Combine(Application.temporaryCachePath,
+            $"jtalk_{Guid.NewGuid():N}.wav");
         bool ok = OpenJTalk_speak_to_wav(text, wavPath);
         if (!ok)
         {
@@ -49,7 +66,7 @@ public class OpenJTalkClient : MonoBehaviour
     // 音声URLからAudioClipを取得するメソッド
     private async UniTask<AudioClip> LoadAudioClipAsync(string wavPath, CancellationToken cancellationToken = default)
     {
-        string url = "file://" + wavPath;
+        string url = new Uri(wavPath).AbsoluteUri;
         using var req = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.WAV);
         await req.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
 

@@ -6230,6 +6230,8 @@ MonoBehaviour:
   isSmoothVoice: 0
   isVoiceInput: 0
   charactorId: 0
+  initialMikuText: スムーズボイスモードだよ。
+  initialJTalkText: ノーマルボイスモードだよ。
 --- !u!4 &472294020
 Transform:
   m_ObjectHideFlags: 0
@@ -9874,6 +9876,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ConfigUIController
   api_key_InputField: {fileID: 58708454}
+  smoothVoiceToggleItem: {fileID: 8195832682282831939}
   openAIClient: {fileID: 859113733}
   conversationManager: {fileID: 472294019}
 --- !u!1 &598506797 stripped
