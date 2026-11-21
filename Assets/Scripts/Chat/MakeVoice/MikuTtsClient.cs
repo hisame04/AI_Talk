@@ -24,6 +24,7 @@ public class MikuTtsClient : MonoBehaviour
     [SerializeField] private string remoteApiUrl = "https://john6666-mikutts.hf.space/gradio_api/call/tts"; // リモートスペースのTTS API URL
     [SerializeField] private string localSpaceRoot = "http://127.0.0.1:7860"; // ローカルスペースのルートURL 
     [SerializeField] private string localApiUrl = "http://127.0.0.1:7860/gradio_api/call/tts";// ローカルスペースのTTS API URL
+    [SerializeField, Range(0f, 1f)] private float indexRate = 1f;
     private string spaceRoot;
     private string apiUrl;
     private ConnectionMode activeConnectionMode;
@@ -145,7 +146,7 @@ public class MikuTtsClient : MonoBehaviour
                 "ja-JP-NanamiNeural-Female",
                 6,
                 "rmvpe",
-                1,
+                indexRate,
                 0.33
             }
         };
