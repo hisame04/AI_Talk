@@ -20,13 +20,20 @@ public class TalkUIController : MonoBehaviour
         startRecordingButton.onClick.AddListener(conversationManager.OnStartRecording);
         stopRecordingButton.onClick.AddListener(OnStopRecording);
         configPanel.SetActive(false); //初期状態では設定パネルを非表示にする
-        OnVoiceInputUnable(); //初期状態ではテキスト入力モードを有効にする
+        if (conversationManager.IsVoiceInput)
+        {
+            OnVoiceInputAble();
+        }
+        else
+        {
+            OnVoiceInputUnable();
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(Input.GetKeyDown(KeyCode.Space))
+        if(Input.GetKeyDown(KeyCode.Escape))
         {
             configPanel.SetActive(!configPanel.activeSelf);
         }

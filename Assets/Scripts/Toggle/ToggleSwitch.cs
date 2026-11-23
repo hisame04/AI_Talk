@@ -15,7 +15,9 @@ namespace Christina.UI
         public bool CurrentValue { get; private set; }
 
         private bool _previousValue;
+        private bool _canToggle = true;
         private Slider _slider;
+        public event Action OnUnavailableClick;
 
         [Header("Animation")]
         [SerializeField, Range(0, 1f)] private float animationDuration = 0.5f;
@@ -88,7 +90,17 @@ namespace Christina.UI
         // クリックを受け取ったらトグル処理を開始する
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (!_canToggle)
+            {
+                OnUnavailableClick?.Invoke();
+                return;
+            }
             Toggle();
+        }
+
+        public void SetInteractable(bool interactable)
+        {
+            _canToggle = interactable;
         }
 
 

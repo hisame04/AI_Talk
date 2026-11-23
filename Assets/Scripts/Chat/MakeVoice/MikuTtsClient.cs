@@ -5,9 +5,7 @@ using System.Text; // 文字列をUTF-8バイトに変換するための名前�
 using UnityEngine; // Unityの基本APIを使うための名前空間を読み込む
 using UnityEngine.Networking; // UnityWebRequestなどネットワークAPIを使うための名前空間を読み込む
 using Cysharp.Threading.Tasks;
-using System.Threading;
 using UniVRM10;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Runtime.InteropServices;
@@ -15,106 +13,116 @@ using System.Net;
 
 public class MikuTtsClient : MonoBehaviour
 { 
-    [SerializeField] private string spaceRoot = "https://john6666-mikutts.hf.space";
-    [SerializeField] private string apiUrl = "https://john6666-mikutts.hf.space/gradio_api/call/tts";
-    [SerializeField] private string proxyUrl = "http://127.0.0.1:8000/tts"; // インスペクターから設定できるプロキシURLを保持する // ゲーミングPCはhttp://10.0.0.19:8000/tts
-    private UnityWebRequest activeRequest;// 現在進行中のリクエストを保持しておく変数
-
-    //*
-    // ローカル実行で取得する方法
-    // *//
-    [System.Serializable]
-    private class TtsRequest { public Args args; } // リクエストボディの外側構造を表すクラスを定義する
-    [System.Serializable]
-    private class Args // リクエストのargs部分を表すクラスを定義する
-    { 
-        public string model_name; // 使用するモデル名を格納する
-        public int speed; // 速度パラメータを格納する
-        public string tts_text; // 読み上げるテキストを格納する
-        public string tts_voice; // TTS音声の種類を格納する
-        public int f0_up_key; // ピッチシフト量を格納する
-        public string f0_method; // ピッチ推定方式を格納する
-        public float index_rate; // インデックス利用率を格納する
-        public float protect; // 保護係数を格納する
-    }
-    [System.Serializable]
-    private class AudioUrlResponse { public string audio_url; } // 返却JSONのaudio_urlだけを受けるクラスを定義する
-    public async UniTask<AudioClip> GetAudioAsync(string modelName, string text, CancellationToken cancellationToken = default)
+    public enum ConnectionMode
     {
-        Debug.Log("mikuTTS Speak");
-        string wavPath = await RequestAudioURLAsync(modelName, text, cancellationToken);
-        var clip = await LoadAudioClipAsync(wavPath, cancellationToken);
-        return clip;
+        Remote,
+        Local
     }
 
-    // TTSリクエストから音声ファイルURLを取得するメソッド
-    private async UniTask<string> RequestAudioURLAsync(string modelName, string text, CancellationToken cancellationToken = default)
+    [SerializeField] private ConnectionMode connectionMode = ConnectionMode.Remote;
+    [SerializeField] private string remoteSpaceRoot = "https://john6666-mikutts.hf.space"; // リモートスペースのルートURL 
+    [SerializeField] private string remoteApiUrl = "https://john6666-mikutts.hf.space/gradio_api/call/tts"; // リモートスペースのTTS API URL
+    [SerializeField] private string localSpaceRoot = "http://127.0.0.1:7860"; // ローカルスペースのルートURL 
+    [SerializeField] private string localApiUrl = "http://127.0.0.1:7860/gradio_api/call/tts";// ローカルスペースのTTS API URL
+    [SerializeField, Range(0f, 1f)] private float indexRate = 1f;
+    private string spaceRoot;
+    private string apiUrl;
+    private ConnectionMode activeConnectionMode;
+    private UniTask connectionReadyTask;
+    private int modeChangeVersion;
+
+    public ConnectionMode CurrentConnectionMode => activeConnectionMode;
+    public UniTask WaitUntilConnectionReadyAsync() => connectionReadyTask;
+
+    private void Awake()
     {
-        var requestBody = CreateTtsRequest(modelName, text);
-        // HTTPリクエストを送る準備をする
-        string json = JsonUtility.ToJson(requestBody); // リクエストをJSON文字列に変換する
-        using var request = new UnityWebRequest(proxyUrl, "POST");
-        request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json)); // JSONをUTF-8バイトにしてアップロードボディに設定する
-        request.downloadHandler = new DownloadHandlerBuffer(); // レスポンスをメモリに受け取るハンドラを設定する
-        request.SetRequestHeader("Content-Type", "application/json"); // JSON送信であることをヘッダに設定する
+        ConnectionMode requestedMode = connectionMode;
+        ApplyConnectionMode(ConnectionMode.Remote);
+        connectionReadyTask = requestedMode == ConnectionMode.Local
+            ? InitializeLocalConnectionAsync().Preserve()
+            : UniTask.CompletedTask;
+    }
 
-        await request.SendWebRequest().ToUniTask(cancellationToken: cancellationToken); // リクエスト送信と完了待ちを行う
-
-        if(request.result != UnityWebRequest.Result.Success) // 通信結果が成功かどうかを確認する
+    private async UniTask InitializeLocalConnectionAsync()
+    {
+        int initialVersion = modeChangeVersion + 1;
+        if (!await TrySetConnectionModeAsync(ConnectionMode.Local)
+            && modeChangeVersion == initialVersion)
         {
-            throw new Exception(request.error); // エラー内容を例外として投げる
-        }
-
-        var responce = JsonUtility.FromJson<AudioUrlResponse>(request.downloadHandler.text); // 返却JSONから音声URLを取り出す
-        if(responce==null || string.IsNullOrEmpty(responce.audio_url))
-        {
-            throw new Exception("Invalid response: " + request.downloadHandler.text); // audio_urlがない場合は例外を投げる
-        }
-        return responce.audio_url; // 音声URLを返す
-    }
-
-
-    // 音声URLからAudioClipを取得するメソッド
-    private async UniTask<AudioClip> LoadAudioClipAsync(string audioUrl, CancellationToken cancellationToken = default)
-    {
-        using var audioReq = UnityWebRequestMultimedia.GetAudioClip(audioUrl, AudioType.WAV); // 音声クリップ取得用リクエストを作成する
-        await audioReq.SendWebRequest().ToUniTask(cancellationToken:cancellationToken); // 音声クリップの取得を実行して完了を待つ
-        if (audioReq.result != UnityWebRequest.Result.Success) // 音声取得が成功か確認する
-        {
-            throw new Exception(audioReq.error); // エラー内容を例外として投げる        
-        }
-        return DownloadHandlerAudioClip.GetContent(audioReq); // 取得したAudioClipを返す
-    }
-
-    private TtsRequest CreateTtsRequest(string modelName,string text)
-    {
-      return new TtsRequest
-      {
-          args = new Args
-          {
-              model_name = modelName,
-              speed = 0,
-              tts_text = text,
-              tts_voice = "ja-JP-NanamiNeural-Female",
-              f0_up_key = 6,
-              f0_method = "pm",
-              index_rate = 0f,
-              protect = 0.33f
-          }
-      };
-    }
-
-    private void OnDestroy()
-    {
-        // 通信中であれば強制的に中断させる
-        if (activeRequest != null)
-        {
-            activeRequest.Abort();
-            activeRequest.Dispose();
-            activeRequest = null;
+            connectionMode = ConnectionMode.Remote;
+            Debug.LogWarning("ローカルMikuTTSの /tts API を確認できなかったため、リモート経路を使用します。");
         }
     }
 
+    public async UniTask<bool> TrySetConnectionModeAsync(ConnectionMode mode)
+    {
+        int requestVersion = ++modeChangeVersion;
+        if (mode == ConnectionMode.Local && !await IsLocalAvailableAsync())
+        {
+            return false;
+        }
+        if (requestVersion != modeChangeVersion)
+        {
+            return false;
+        }
+
+        connectionMode = mode;
+        ApplyConnectionMode(mode);
+        return true;
+    }
+
+    public async UniTask<bool> IsLocalAvailableAsync()
+    {
+        if (string.IsNullOrWhiteSpace(localSpaceRoot) || string.IsNullOrWhiteSpace(localApiUrl))
+        {
+            return false;
+        }
+
+        string expectedApiUrl = localSpaceRoot.TrimEnd('/') + "/gradio_api/call/tts";
+        if (!string.Equals(localApiUrl.TrimEnd('/'), expectedApiUrl, StringComparison.OrdinalIgnoreCase)
+            || !Uri.TryCreate(localSpaceRoot, UriKind.Absolute, out Uri rootUri)
+            || (rootUri.Scheme != Uri.UriSchemeHttp && rootUri.Scheme != Uri.UriSchemeHttps))
+        {
+            return false;
+        }
+
+        using var request = UnityWebRequest.Get(localSpaceRoot.TrimEnd('/') + "/gradio_api/info");
+        request.timeout = 5;
+        try
+        {
+            await request.SendWebRequest().ToUniTask();
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                return false;
+            }
+
+            JObject info = JObject.Parse(request.downloadHandler.text);
+            return info["named_endpoints"] is JObject endpoints && endpoints["/tts"] != null;
+        }
+        catch (UnityWebRequestException)
+        {
+            return false;
+        }
+        catch (JsonReaderException)
+        {
+            return false;
+        }
+    }
+
+    private void ApplyConnectionMode(ConnectionMode mode)
+    {
+        if (mode == ConnectionMode.Local)
+        {
+            spaceRoot = localSpaceRoot;
+            apiUrl = localApiUrl;
+        }
+        else
+        {
+            spaceRoot = remoteSpaceRoot;
+            apiUrl = remoteApiUrl;
+        }
+        activeConnectionMode = mode;
+    }
 
     //*
     // API経由で取得する方法
@@ -122,7 +130,9 @@ public class MikuTtsClient : MonoBehaviour
     /* TTSのAPIを叩き音声ファイルを返すメソッド */
     public async UniTask<AudioClip> CallTTS(string modelName, string text)
     {
-        string url = apiUrl;
+        await connectionReadyTask;
+        string requestApiUrl = apiUrl;
+        string requestSpaceRoot = spaceRoot;
 
         var payload = new
         {
@@ -136,19 +146,19 @@ public class MikuTtsClient : MonoBehaviour
                 "ja-JP-NanamiNeural-Female",
                 6,
                 "rmvpe",
-                1,
+                indexRate,
                 0.33
             }
         };
         string json = JsonConvert.SerializeObject(payload);
 
-        string eventId = await PostTTS(json);
+        string eventId = await PostTTS(json, requestApiUrl);
         if(string.IsNullOrEmpty(eventId)) return null;
 
-        string resultText = await GetTTS(eventId);
+        string resultText = await GetTTS(eventId, requestApiUrl);
         if(string.IsNullOrEmpty(resultText)) return null;
 
-        string audioUrl = ExtractResultAudioUrl(resultText);
+        string audioUrl = ExtractResultAudioUrl(resultText, requestSpaceRoot);
         if (string.IsNullOrEmpty(audioUrl))
         {
             Debug.Log("音声URLが見つかりませんでした");
@@ -162,9 +172,9 @@ public class MikuTtsClient : MonoBehaviour
     }
 
     /* apiにPOSTするためのメソッド */
-    async UniTask<string> PostTTS(string json)
+    async UniTask<string> PostTTS(string json, string requestApiUrl)
     {
-        using var req = new UnityWebRequest(apiUrl, "POST");
+        using var req = new UnityWebRequest(requestApiUrl, "POST");
         
         byte[] body = Encoding.UTF8.GetBytes(json);
 
@@ -186,9 +196,9 @@ public class MikuTtsClient : MonoBehaviour
     }
 
     /* apiにGETするためのメソッド */
-    async UniTask<string> GetTTS(string eventId)
+    async UniTask<string> GetTTS(string eventId, string requestApiUrl)
     {
-        string getUrl = apiUrl + "/" + eventId;
+        string getUrl = requestApiUrl + "/" + eventId;
 
         using var req =UnityWebRequest.Get(getUrl);
         await req.SendWebRequest().ToUniTask();
@@ -203,7 +213,7 @@ public class MikuTtsClient : MonoBehaviour
     }
 
     /* 音声ファイルの取得先を特定するメソッド */
-    string ExtractResultAudioUrl(string sseText)
+    string ExtractResultAudioUrl(string sseText, string requestSpaceRoot)
     {
         var dataLines = sseText
             .Split('\n')
@@ -247,7 +257,7 @@ public class MikuTtsClient : MonoBehaviour
 
             if (url.StartsWith("/"))
             {
-                url = spaceRoot + url;
+                url = requestSpaceRoot + url;
             }
 
             return url;
